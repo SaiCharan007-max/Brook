@@ -24,6 +24,9 @@ import { PageTitleProvider } from './PageTitleContext.jsx';
 import { withViewTransition } from './motion.js';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { ShortcutSheet } from '../components/ShortcutSheet.jsx';
+import { Farewell, Petals, ToBeContinued, useKonami } from '../components/Delights.jsx';
+import { toastBus } from './toastBus.js';
+import { prefersReducedMotion } from './motion.js';
 
 export function App({ settings }) {
   return (
@@ -83,6 +86,60 @@ function Shell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const [petalsKey, setPetalsKey] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+
+  // One Piece: Soul King mode — a hidden theme, unlocked with the Konami code.
+  useEffect(() => {
+    if (settings.soulKing) document.documentElement.dataset.soulKing = 'true';
+    else delete document.documentElement.dataset.soulKing;
+  }, [settings.soulKing]);
+  const toggleSoulKing = useCallback(() => {
+    const on = !settings.soulKing;
+    update('soulKing', on);
+    toastBus.push(
+      on
+        ? { title: 'Yohohoho! Soul King mode', message: 'The stage is set. (Type the code again to leave.)' }
+        : { title: 'Soul King mode off', message: 'Until the next encore.' },
+    );
+  }, [settings.soulKing, update]);
+  useKonami(toggleSoulKing);
+
+  // One Piece (Laboon): a restored session is a promise kept.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (player.getSnapshot().current && settings.resumeOnLaunch) {
+        toastBus.push({ title: 'Right where you left off', message: 'A promise kept.' });
+      }
+    }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When Brook isn't the active window, the transport dims slightly (like native Windows apps).
+  useEffect(() => {
+    const root = document.documentElement;
+    const blur = () => (root.dataset.windowBlurred = 'true');
+    const focusIn = () => delete root.dataset.windowBlurred;
+    window.addEventListener('blur', blur);
+    window.addEventListener('focus', focusIn);
+    return () => {
+      window.removeEventListener('blur', blur);
+      window.removeEventListener('focus', focusIn);
+    };
+  }, []);
+
+  // Cowboy Bebop: a short farewell before quitting (instant with reduced motion).
+  useEffect(() => {
+    const onFarewell = () => {
+      if (prefersReducedMotion()) return api.app.quit();
+      setLeaving(true);
+      setTimeout(() => api.app.quit(), 1400);
+    };
+    window.addEventListener('brook:farewell', onFarewell);
+    return () => window.removeEventListener('brook:farewell', onFarewell);
+  }, []);
   const scrollRef = useRef(null);
   const searchRef = useRef(null);
 
@@ -115,7 +172,35 @@ function Shell() {
 
   // Now Playing opens/closes inside a View Transition: the player art morphs into the big art.
   const openNowPlaying = useCallback(() => withViewTransition(() => setNowPlaying(true), { direction: 'up' }), []);
-  const closeNowPlaying = useCallback(() => withViewTransition(() => setNowPlaying(false), { direction: 'down' }), []);
+  const closeNowPlaying = useCallback(() => {
+    setFocus((f) => {
+      if (f) api.windows.setFullScreen(false).catch(() => {});
+      return false;
+    });
+    withViewTransition(() => setNowPlaying(false), { direction: 'down' });
+  }, []);
+
+  // Bleach: Bankai — fullscreen focus mode, entered with a burst of Senbonzakura petals.
+  const enterFocus = useCallback(
+    (announce = false) => {
+      if (!player.getSnapshot().current) return;
+      if (!nowPlaying) withViewTransition(() => setNowPlaying(true), { direction: 'up' });
+      setFocus(true);
+      setPetalsKey((k) => k + 1);
+      api.windows.setFullScreen(true).catch(() => {});
+      if (announce) toastBus.push({ title: 'Bankai.', message: 'Focus mode — Esc to return.' });
+    },
+    [nowPlaying],
+  );
+  const exitFocus = useCallback(() => {
+    setFocus(false);
+    api.windows.setFullScreen(false).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!petalsKey) return undefined;
+    const t = setTimeout(() => setPetalsKey(0), 5200);
+    return () => clearTimeout(t);
+  }, [petalsKey]);
   const toggleMini = () => api.windows.toggleMini();
 
   // Global keyboard shortcuts.
@@ -155,12 +240,16 @@ function Shell() {
         navigate('settings');
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'q') {
         e.preventDefault();
-        api.app.quit();
+        window.dispatchEvent(new Event('brook:farewell'));
+      } else if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing) {
+        e.preventDefault();
+        if (focus) exitFocus();
+        else enterFocus();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [goBack, goForward, navigate, nowPlaying, closeNowPlaying]);
+  }, [goBack, goForward, navigate, nowPlaying, closeNowPlaying, focus, enterFocus, exitFocus]);
 
   // Mouse back/forward buttons.
   useEffect(() => {
@@ -205,8 +294,17 @@ function Shell() {
         miniVisible={miniVisible}
         onToggleMini={toggleMini}
       />
-      {nowPlaying && <NowPlaying onClose={closeNowPlaying} />}
-      {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} onOpenNowPlaying={openNowPlaying} onShowShortcuts={() => setShortcutsOpen(true)} />}
+      {nowPlaying && <NowPlaying onClose={focus ? exitFocus : closeNowPlaying} focus={focus} soulKing={!!settings.soulKing} />}
+      {petalsKey > 0 && <Petals key={petalsKey} />}
+      <ToBeContinued />
+      {leaving && <Farewell />}
+      {paletteOpen && <CommandPalette
+          onClose={() => setPaletteOpen(false)}
+          onOpenNowPlaying={openNowPlaying}
+          onShowShortcuts={() => setShortcutsOpen(true)}
+          onFocusMode={enterFocus}
+          onSoulKing={toggleSoulKing}
+        />}
       {shortcutsOpen && <ShortcutSheet onClose={() => setShortcutsOpen(false)} />}
     </div>
   );

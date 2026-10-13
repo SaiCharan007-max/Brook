@@ -3,6 +3,9 @@ import { Disc3, Heart, Home, ListMusic, Mic2, Music, Plus, Settings2 } from 'luc
 import { useNavigation } from '../app/NavigationContext.jsx';
 import { useLibrary } from '../app/LibraryContext.jsx';
 import { useTrackActions } from '../hooks/useTrackActions.js';
+import { toastBus } from '../app/toastBus.js';
+import { api } from '../services/api.js';
+import { TRACKS_MIME } from './TrackList.jsx';
 import { Wordmark, BrandMark } from './BrandMark.jsx';
 
 const fmt = (n) => (n == null ? '' : n.toLocaleString());
@@ -14,8 +17,50 @@ const fmt = (n) => (n == null ? '' : n.toLocaleString());
 export function Sidebar() {
   const { route, navigate } = useNavigation();
   const { playlists, scanning, scan, stats } = useLibrary();
-  const { createPlaylist } = useTrackActions();
+  const { createPlaylist, addToPlaylist, setFavorite } = useTrackActions();
+  const [dropTarget, setDropTarget] = useState(null);
+
+  // Songs dragged from any list can be dropped on a playlist (adds them) or on Favorites (hearts them).
+  const dropProps = (key, onTracks) => ({
+    onDragOver: (e) => {
+      if (!e.dataTransfer.types.includes(TRACKS_MIME)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      if (dropTarget !== key) setDropTarget(key);
+    },
+    onDragLeave: () => setDropTarget((t) => (t === key ? null : t)),
+    onDrop: async (e) => {
+      setDropTarget(null);
+      const raw = e.dataTransfer.getData(TRACKS_MIME);
+      if (!raw) return;
+      e.preventDefault();
+      const ids = JSON.parse(raw).filter((n) => Number.isSafeInteger(n));
+      const tracks = await api.library.getTracks(ids).catch(() => []);
+      if (tracks.length) onTracks(tracks);
+      const el = e.currentTarget;
+      el.classList.remove('drop-done');
+      void el.offsetWidth;
+      el.classList.add('drop-done');
+    },
+  });
   const navRef = useRef(null);
+  const clicks = useRef([]);
+
+  // One Piece: Brook tips his hat on every click; five quick clicks and he asks his famous question.
+  const onBrandClick = (e) => {
+    for (const m of e.currentTarget.querySelectorAll('.brand-mark')) {
+      m.classList.remove('brand-tip');
+      void m.offsetWidth;
+      m.classList.add('brand-tip');
+    }
+    const now = Date.now();
+    clicks.current = [...clicks.current.filter((t) => now - t < 1600), now];
+    if (clicks.current.length >= 5) {
+      clicks.current = [];
+      toastBus.push({ title: 'Yohohoho!', message: 'Pardon me, but… may I see your playlists?' });
+    }
+    navigate('home');
+  };
   const [indicator, setIndicator] = useState(null);
 
   // One indicator glides to whichever item is active (spring), instead of per-item markers.
@@ -57,7 +102,14 @@ export function Sidebar() {
     const active = isActive(item);
     return (
       <li key={item.name}>
-        <button type="button" className={`nav-item${active ? ' is-active' : ''}`} aria-current={active ? 'page' : undefined} onClick={() => navigate(item.name)} title={item.label}>
+        <button
+          type="button"
+          className={`nav-item${active ? ' is-active' : ''}${dropTarget === item.name ? ' is-drop-target' : ''}`}
+          aria-current={active ? 'page' : undefined}
+          onClick={() => navigate(item.name)}
+          title={item.label}
+          {...(item.name === 'favorites' ? dropProps('favorites', (tracks) => setFavorite(tracks, true)) : null)}
+        >
           <item.icon size={17} className="nav-item__icon" aria-hidden />
           <span className="nav-item__label">{item.label}</span>
           {item.count != null && <span className="nav-item__count">{fmt(item.count)}</span>}
@@ -73,7 +125,7 @@ export function Sidebar() {
         aria-hidden
         style={indicator ? { transform: `translateY(${indicator.top}px)`, height: indicator.height, opacity: 1 } : { opacity: 0 }}
       />
-      <button type="button" className="sidebar__brand" onClick={() => navigate('home')} aria-label="Brook — overview">
+      <button type="button" className="sidebar__brand" onClick={onBrandClick} aria-label="Brook — overview">
         <Wordmark />
         <BrandMark size={32} className="sidebar__brand-compact" />
       </button>
@@ -115,7 +167,8 @@ export function Sidebar() {
               <li key={p.id}>
                 <button
                   type="button"
-                  className={`nav-item nav-item--playlist${active ? ' is-active' : ''}`}
+                  className={`nav-item nav-item--playlist${active ? ' is-active' : ''}${dropTarget === `p${p.id}` ? ' is-drop-target' : ''}`}
+                  {...dropProps(`p${p.id}`, (tracks) => addToPlaylist(p.id, tracks))}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => navigate('playlist', { id: p.id })}
                   title={p.name}

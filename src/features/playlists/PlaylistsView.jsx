@@ -249,7 +249,7 @@ export function PlaylistDetailView({ id, smart }) {
           title={smart ? 'Nothing here yet' : 'This playlist is empty'}
           message={
             smart === 'favorites'
-              ? 'Tap the heart on any song to add it to your favorites.'
+              ? 'Tap the heart on any song to add it here. (Or press and hold it to dedicate your heart.)'
               : smart
                 ? 'Play some music and this collection will fill in.'
                 : 'Right-click songs anywhere in your library and choose “Add to playlist”.'

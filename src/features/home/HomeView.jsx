@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { ArrowUpRight, FolderPlus, Shuffle } from 'lucide-react';
+import { CountUp } from '../../components/Delights.jsx';
 import { api } from '../../services/api.js';
 import { player } from '../../services/player.js';
 import { useLibrary, useLibraryQuery } from '../../app/LibraryContext.jsx';
@@ -15,6 +17,12 @@ function dateline(d = new Date()) {
   return `${day} · ${date}`;
 }
 
+/** "Good evening" + name → "Good evening, Ichigo"; keeps a trailing ? where it belongs. */
+function withName(text, name) {
+  if (!name) return text;
+  return /[?!]$/.test(text) ? `${text.slice(0, -1)}, ${name}${text.slice(-1)}` : `${text}, ${name}`;
+}
+
 function ledgerDuration(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.round((seconds % 3600) / 60);
@@ -25,10 +33,14 @@ export function HomeView() {
   const { data: home } = useLibraryQuery(() => api.library.home(), []);
   const { scanning } = useLibrary();
   const { navigate } = useNavigation();
+  const [name, setName] = useState(null);
+  useEffect(() => {
+    api.app.info().then((i) => setName(i.userName)).catch(() => {});
+  }, []);
 
   if (!home) return <div className="view"><SkeletonRows count={8} /></div>;
   const { stats } = home;
-  const hello = greeting();
+  const hello = withName(greeting(), name);
 
   if (!stats.tracks) {
     return (
@@ -63,19 +75,28 @@ export function HomeView() {
         <dl className="ledger rise" style={{ '--i': 2 }}>
           <div>
             <dt>Tracks</dt>
-            <dd>{stats.tracks.toLocaleString()}</dd>
+            {/* Dragon Ball: past 9,000 the scouter has something to say. */}
+            <dd title={stats.tracks > 9000 ? "It's over 9000!" : undefined}>
+              <CountUp value={stats.tracks} />
+            </dd>
           </div>
           <div>
             <dt>Albums</dt>
-            <dd>{stats.albums.toLocaleString()}</dd>
+            <dd>
+              <CountUp value={stats.albums} />
+            </dd>
           </div>
           <div>
             <dt>Artists</dt>
-            <dd>{stats.artists.toLocaleString()}</dd>
+            <dd>
+              <CountUp value={stats.artists} />
+            </dd>
           </div>
           <div>
             <dt>Running time</dt>
-            <dd>{ledgerDuration(stats.duration)}</dd>
+            <dd>
+              <CountUp value={Math.round(stats.duration)} format={ledgerDuration} />
+            </dd>
           </div>
           <div className="ledger__actions">
             <button className="btn btn--primary" onClick={shuffleAll}>

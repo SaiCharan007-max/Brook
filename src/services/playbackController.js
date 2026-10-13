@@ -310,7 +310,8 @@ export class PlaybackController {
     if (r.ended) {
       this.audio.currentTime = 0;
       this.#setPosition({ position: 0 });
-      this.#set({ playing: false });
+      // endedAt lets the UI mark the end of the queue (the "To Be Continued" arrow).
+      this.#set({ playing: false, endedAt: Date.now() });
       return;
     }
     this.#set({ queue: r.state });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Disc3 } from 'lucide-react';
 import { Artwork, IconButton, FavButton } from '../../components/primitives.jsx';
+import { TopHat, useTilt } from '../../components/Delights.jsx';
 import { TransportControls, SeekBar, VolumeControl } from '../../components/PlayerControls.jsx';
 import { QueueList } from '../../components/QueueList.jsx';
 import { usePlayer, usePosition, player } from '../../hooks/usePlayer.js';
@@ -9,7 +10,8 @@ import { api } from '../../services/api.js';
 import { artUrl } from '../../services/playbackController.js';
 import { formatDuration, trackFormatLabel } from '../../utils/format.js';
 
-export function NowPlaying({ onClose }) {
+export function NowPlaying({ onClose, focus = false, soulKing = false }) {
+  const tiltRef = useTilt(5);
   const current = usePlayer((s) => s.current);
   const playing = usePlayer((s) => s.playing);
   const position = usePlayer((s) => Math.max(0, s.queue.index));
@@ -38,7 +40,7 @@ export function NowPlaying({ onClose }) {
 
   return (
     <div
-      className={`now-playing${playing ? ' is-playing' : ''}`}
+      className={`now-playing${playing ? ' is-playing' : ''}${focus ? ' is-focus' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Now Playing"
@@ -61,12 +63,17 @@ export function NowPlaying({ onClose }) {
         <div className="now-playing__empty">Quiet as a ghost ship. Choose a song from your library to begin.</div>
       ) : (
         <div className="now-playing__body">
-          <div className="now-playing__art" style={{ viewTransitionName: 'np-art' }}>
-            <Artwork key={current.artHash ?? current.id} hash={current.artHash} kind="full" rounded="md" icon={Disc3} className="np-art-swap" />
+          <div className="now-playing__art tilt" ref={tiltRef} style={{ viewTransitionName: 'np-art' }}>
+            {soulKing && <TopHat />}
+            {/* In Bankai (focus) mode each new track arrives with a Getsuga Tenshō slash. */}
+            <div key={focus ? `slash-${current.id}` : 'art'} className={focus ? 'slash-in' : undefined}>
+              <Artwork key={current.artHash ?? current.id} hash={current.artHash} kind="full" rounded="md" icon={Disc3} className="np-art-swap" />
+            </div>
           </div>
           <section className="now-playing__column">
             <div className="meta-in" key={current.id}>
             <div className="mono-label">
+              {focus && <span className="focus-badge">Bankai · </span>}
               Track {position + 1} of {total}
               {current.lossless ? ' · Lossless' : ''}
             </div>
@@ -158,6 +165,13 @@ function SyncedLyrics({ lines }) {
     }
     return idx;
   }, [lines, position]);
+  // How far through the active line we are (drives the karaoke fill).
+  const sung = useMemo(() => {
+    if (active < 0) return 0;
+    const start = lines[active].time;
+    const end = lines[active + 1]?.time ?? start + 4;
+    return Math.max(0, Math.min(100, ((position - start) / Math.max(0.5, end - start)) * 100));
+  }, [lines, active, position]);
 
   useEffect(() => {
     const el = ref.current?.querySelector(`[data-line="${active}"]`);
@@ -172,6 +186,7 @@ function SyncedLyrics({ lines }) {
           type="button"
           data-line={i}
           className={`lyrics__line${i === active ? ' is-active' : ''}${i < active ? ' is-past' : ''}`}
+          style={i === active ? { '--sung': `${sung}%` } : undefined}
           onClick={() => player.seek(l.time)}
           title={`Jump to ${formatDuration(l.time)}`}
         >

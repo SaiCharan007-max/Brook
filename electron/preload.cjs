@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('vela', {
     toggleMini: () => call('window:toggleMini'),
     showMain: () => call('window:showMain'),
     miniVisible: () => call('window:miniVisible'),
+    setFullScreen: (value) => call('window:setFullScreen', value),
     onMiniVisibility: subscribe('window:miniVisibility'),
   },
   app: {

@@ -297,6 +297,36 @@ try {
     await waitFor(async () => (await page.getByRole('heading', { name: 'Keyboard shortcuts' }).count()) === 0, { message: 'sheet closed' });
   });
 
+  await step('Konami code toggles Soul King mode', async () => {
+    await page.locator('.content').click({ position: { x: 5, y: 5 } });
+    for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);
+    await waitFor(async () => (await page.evaluate(() => document.documentElement.dataset.soulKing)) === 'true', { message: 'soul king on' });
+    assert.equal((await page.evaluate(() => window.vela.settings.get())).soulKing, true);
+    for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);
+    await waitFor(async () => (await page.evaluate(() => document.documentElement.dataset.soulKing)) === undefined, { message: 'soul king off' });
+  });
+
+  await step('F enters and Esc leaves focus (Bankai) mode', async () => {
+    await page.locator('.content').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('f');
+    await page.locator('.now-playing.is-focus').waitFor();
+    await page.keyboard.press('Escape');
+    await waitFor(async () => (await page.locator('.now-playing.is-focus').count()) === 0, { message: 'focus off' });
+    await page.keyboard.press('Escape');
+    await waitFor(async () => (await page.locator('.now-playing').count()) === 0, { message: 'now playing closed' });
+  });
+
+  await step('drag a song onto a sidebar playlist to add it', async () => {
+    await nav(page, 'Songs');
+    await page.locator('.tl-row').first().waitFor();
+    const before = (await page.evaluate(() => window.vela.playlists.list())).find((p) => p.name === 'Road Trip').trackCount;
+    const row = page.locator('.tl-row', { has: page.locator('.tl-title', { hasText: 'Night Bloom' }) }).first();
+    await row.dragTo(page.locator('.nav-item--playlist', { hasText: 'Road Trip' }));
+    await waitFor(async () => (await page.evaluate(() => window.vela.playlists.list())).find((p) => p.name === 'Road Trip').trackCount === before + 1, {
+      message: 'playlist grew by one',
+    });
+  });
+
   console.log('\nMini-player & lifecycle');
   await step('mini-player opens as a separate window and mirrors playback', async () => {
     await nav(page, 'Songs');

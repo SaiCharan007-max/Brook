@@ -10,6 +10,7 @@ import './styles/shell.css';
 import './styles/components.css';
 import './styles/views.css';
 import './styles/motion.css';
+import './styles/delight.css';
 import { api } from './services/api.js';
 import { player } from './services/player.js';
 import { App } from './app/App.jsx';

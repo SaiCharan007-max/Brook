@@ -1,5 +1,6 @@
 import { ipcMain, dialog, shell, app } from 'electron';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import * as v from './validators.js';
 import * as repo from '../services/libraryRepo.js';
@@ -130,6 +131,15 @@ export function registerIpc(ctx) {
   handle('window:toggleMini', () => windows.toggleMini());
   handle('window:showMain', () => windows.showMain());
   handle('window:miniVisible', () => windows.miniVisible);
+  handle(
+    'window:setFullScreen',
+    (value) => {
+      const on = v.bool(value, 'value');
+      windows.main?.setFullScreen(on);
+      return on;
+    },
+    { mainOnly: true },
+  );
   handle('app:quit', () => ctx.quit());
   handle('app:info', () => ({
     name: app.getName(),
@@ -142,6 +152,8 @@ export function registerIpc(ctx) {
     arch: process.arch,
     schemaVersion: currentSchemaVersion(db),
     packaged: app.isPackaged,
+    // First name only, for the greeting. Never leaves this computer.
+    userName: displayName(),
   }));
   handle('app:storage', async () => {
     const size = async (p) => (await fs.stat(p).catch(() => null))?.size ?? 0;
@@ -165,6 +177,15 @@ export function registerIpc(ctx) {
     repo.deleteArtworkRows(db, unused.map((a) => a.id));
     return unused.length;
   });
+}
+
+function displayName() {
+  try {
+    const raw = os.userInfo().username.split(/[s._-]+/)[0];
+    return raw ? raw[0].toUpperCase() + raw.slice(1) : null;
+  } catch {
+    return null;
+  }
 }
 
 function friendlyError(err) {

@@ -51,6 +51,8 @@ export function TransportControls({ size = 'md', showModes = true }) {
       {showModes && (
         <IconButton
           label={shuffle ? 'Shuffle: on' : 'Shuffle: off'}
+          // Spy × Family: Anya approves of surprises.
+          title={shuffle ? 'Shuffle: on · Waku waku!' : 'Shuffle: off'}
           icon={Shuffle}
           active={shuffle}
           aria-pressed={shuffle}
@@ -64,6 +66,8 @@ export function TransportControls({ size = 'md', showModes = true }) {
       {showModes && (
         <IconButton
           label={repeatLabel}
+          // Attack on Titan: repeat one, over and over. Tatakae.
+          title={repeat === 'one' ? 'Repeat: one · Tatakae, tatakae' : repeatLabel}
           icon={RepeatIcon}
           active={repeat !== 'off'}
           aria-pressed={repeat !== 'off'}
@@ -130,9 +134,10 @@ export function VolumeControl() {
 export function SeekLine() {
   const { position, duration } = usePosition();
   const hasTrack = usePlayer((s) => !!s.current);
+  const buffering = usePlayer((s) => !!s.current && s.loading);
   return (
     <Slider
-      className="seek-line"
+      className={`seek-line${buffering ? ' is-buffering' : ''}`}
       label="Seek"
       value={position}
       max={duration || 0}

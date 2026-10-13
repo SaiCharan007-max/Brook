@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Crown,
   Disc3,
   FolderPlus,
   Heart,
@@ -19,6 +20,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { player } from '../services/player.js';
@@ -29,7 +31,7 @@ import { Artwork, useDebounced } from './primitives.jsx';
 const norm = (s) => s.normalize('NFKD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 /** Ctrl+K: jump to any song, album, artist or action without leaving the keyboard. */
-export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts }) {
+export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts, onFocusMode, onSoulKing }) {
   const { navigate } = useNavigation();
   const { createPlaylist } = useTrackActions();
   const [query, setQuery] = useState('');
@@ -39,6 +41,8 @@ export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts }) {
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const queryRef = useRef('');
+  queryRef.current = query;
 
   const actions = useMemo(
     () => [
@@ -53,6 +57,15 @@ export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts }) {
       { label: 'Toggle shuffle', icon: Shuffle, run: () => player.toggleShuffle() },
       { label: 'Change repeat mode', icon: Repeat, run: () => player.cycleRepeat() },
       { label: 'Open Now Playing', icon: Maximize2, run: () => onOpenNowPlaying() },
+      {
+        label: 'Focus mode',
+        hint: 'F',
+        keywords: 'bankai fullscreen zen immersive',
+        icon: Sparkles,
+        // Typing "bankai" gets the full release.
+        run: () => onFocusMode(norm(queryRef.current).includes('bankai')),
+      },
+      { label: 'Soul King mode', keywords: 'yohoho yohohoho brook soul king konami', hidden: true, icon: Crown, run: () => onSoulKing() },
       { label: 'Toggle mini player', icon: PictureInPicture2, run: () => api.windows.toggleMini() },
       { label: 'Go to Overview', icon: Home, run: () => navigate('home') },
       { label: 'Go to Songs', icon: Music, run: () => navigate('songs') },
@@ -69,7 +82,7 @@ export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts }) {
       { label: 'Library & settings', hint: 'Ctrl ,', icon: Settings2, run: () => navigate('settings') },
       { label: 'Keyboard shortcuts', hint: '?', icon: Keyboard, run: () => onShowShortcuts() },
     ],
-    [navigate, createPlaylist, onOpenNowPlaying, onShowShortcuts],
+    [navigate, createPlaylist, onOpenNowPlaying, onShowShortcuts, onFocusMode, onSoulKing],
   );
 
   useEffect(() => {
@@ -99,7 +112,8 @@ export function CommandPalette({ onClose, onOpenNowPlaying, onShowShortcuts }) {
   const sections = useMemo(() => {
     const out = [];
     const nq = norm(query.trim());
-    const matchedActions = nq ? actions.filter((a) => norm(a.label).includes(nq)) : actions.slice(0, 6);
+    const matches = (a) => norm(a.label).includes(nq) || (a.keywords && nq.length >= 4 && norm(a.keywords).split(' ').some((k) => k.startsWith(nq) || nq.includes(k)));
+    const matchedActions = nq ? actions.filter(matches) : actions.filter((a) => !a.hidden).slice(0, 6);
     if (!nq && recent.length) {
       out.push({
         title: 'Recently played',

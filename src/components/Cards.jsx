@@ -6,6 +6,7 @@ import { toastBus } from '../app/toastBus.js';
 import { useNavigation } from '../app/NavigationContext.jsx';
 import { useTrackActions } from '../hooks/useTrackActions.js';
 import { nameForTransition } from '../app/motion.js';
+import { useTilt } from './Delights.jsx';
 import { plural } from '../utils/format.js';
 
 async function playAlbum(id, shuffle = false) {
@@ -23,6 +24,7 @@ const albumPreview = (a) => ({ title: a.title, artist: a.artist, artistId: a.art
 export function AlbumCard({ album, index = 0 }) {
   const { navigate } = useNavigation();
   const { openTrackMenu } = useTrackActions();
+  const tiltRef = useTilt(7);
   const open = (e) => {
     nameForTransition(e?.currentTarget?.closest('.media-card')?.querySelector('.artwork'), 'hero-art');
     navigate('album', { id: album.id, preview: albumPreview(album) });
@@ -36,7 +38,7 @@ export function AlbumCard({ album, index = 0 }) {
   };
   return (
     <div className="media-card rise" style={{ '--i': index }} onContextMenu={onContextMenu}>
-      <div className="media-card__art">
+      <div className="media-card__art tilt sheen" ref={tiltRef}>
         <button type="button" className="media-card__open" onClick={open} aria-label={`Open album ${album.title}`}>
           <Artwork hash={album.artHash} rounded="md" />
         </button>

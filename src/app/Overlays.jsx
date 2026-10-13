@@ -24,7 +24,13 @@ export function Toasts() {
       {toasts.map((t) => {
         const Icon = TOAST_ICONS[t.type] ?? Info;
         return (
-          <div key={t.id} className={`toast toast--${t.type}`} role={t.type === 'error' ? 'alert' : 'status'}>
+          <div
+            key={t.id}
+            className={`toast toast--${t.type}`}
+            role={t.type === 'error' ? 'alert' : 'status'}
+            data-countdown={t.action ? '' : undefined}
+            style={t.action ? { '--toast-duration': `${t.duration}ms` } : undefined}
+          >
             <Icon size={18} className="toast__icon" aria-hidden />
             <div className="toast__body">
               <div className="toast__title">{t.title}</div>

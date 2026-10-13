@@ -10,6 +10,17 @@ import { formatDuration, formatDate } from '../utils/format.js';
 export const ScrollContext = createContext({ current: null });
 
 const ROW_HEIGHT = 52;
+export const TRACKS_MIME = 'application/x-brook-tracks';
+
+/** A small "♪ 3 songs" chip that follows the pointer while dragging. */
+function setDragChip(e, sel) {
+  const chip = document.createElement('div');
+  chip.className = 'drag-chip';
+  chip.textContent = sel.length === 1 ? sel[0].title : `${sel.length} songs`;
+  document.body.appendChild(chip);
+  e.dataTransfer.setDragImage(chip, 14, 14);
+  setTimeout(() => chip.remove(), 0);
+}
 const DISC_HEIGHT = 44;
 const OVERSCAN = 10;
 const VIRTUALIZE_AFTER = 120;
@@ -287,15 +298,19 @@ export function TrackList({
   };
 
   // Drag-and-drop reordering (playlists).
-  const dragProps = (index) =>
-    onReorder
+  // Any song can be dragged onto a sidebar playlist; playlists additionally reorder by drag.
+  const dragProps = (index) => ({
+    draggable: true,
+    onDragStart: (e) => {
+      const sel = selected.has(index) ? selection() : [tracks[index]];
+      e.dataTransfer.effectAllowed = onReorder ? 'copyMove' : 'copy';
+      e.dataTransfer.setData(TRACKS_MIME, JSON.stringify(sel.map((t) => t.id)));
+      e.dataTransfer.setData('text/plain', sel.map((t) => `${t.title} — ${t.artist}`).join('\n'));
+      setDragChip(e, sel);
+      if (onReorder) dragFrom.current = index;
+    },
+    ...(onReorder
       ? {
-          draggable: true,
-          onDragStart: (e) => {
-            dragFrom.current = index;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(index));
-          },
           onDragOver: (e) => {
             if (dragFrom.current == null) return;
             e.preventDefault();
@@ -315,12 +330,13 @@ export function TrackList({
             if (from < to) to--;
             if (to !== from) onReorder(from, to);
           },
-          onDragEnd: () => {
-            dragFrom.current = null;
-            setDragOver(null);
-          },
         }
-      : {};
+      : {}),
+    onDragEnd: () => {
+      dragFrom.current = null;
+      setDragOver(null);
+    },
+  });
 
   const { start, end } = virtual.range;
   const padTop = virtual.offsets[start] ?? 0;
@@ -497,7 +513,14 @@ const TrackRow = memo(function TrackRow({
       tabIndex={tabbable ? 0 : -1}
       data-index={index}
       onMouseDown={(e) => onMouseDown(e, index)}
-      onDoubleClick={() => onDoubleClick(index)}
+      onDoubleClick={(e) => {
+        const row = e.currentTarget;
+        row.classList.remove('flash');
+        void row.offsetWidth; // restart the animation
+        row.classList.add('flash');
+        setTimeout(() => row.classList.remove('flash'), 750);
+        onDoubleClick(index);
+      }}
       onContextMenu={(e) => onContextMenu(e, index)}
       {...dragProps}
     >

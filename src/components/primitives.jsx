@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { Disc3, Heart, Loader2, Music2 } from 'lucide-react';
 import { artUrl } from '../services/playbackController.js';
 import { usePageTitle } from '../app/PageTitleContext.jsx';
+import { toastBus } from '../app/toastBus.js';
 
 /** Album artwork with a graceful placeholder when missing or failing to load. */
 export function Artwork({ hash, kind = 'thumb', size, alt = '', className = '', rounded = 'md', icon: Icon = Music2, style: extraStyle }) {
@@ -181,7 +182,53 @@ export function FavButton({ active, onToggle, size = 'sm', className = '', plain
       </button>
     );
   }
-  return <IconButton label={label} icon={Heart} size={size} className={`fav-btn ${cls}`} onClick={onToggle} />;
+  return <HoldableHeart label={label} size={size} cls={cls} active={active} onToggle={onToggle} />;
+}
+
+/**
+ * Attack on Titan: press and hold the heart to dedicate it — "Shinzou wo sasageyo!".
+ * A normal click still just toggles.
+ */
+function HoldableHeart({ label, size, cls, active, onToggle }) {
+  const timer = useRef(null);
+  const held = useRef(false);
+  const [holding, setHolding] = useState(false);
+  const [salute, setSalute] = useState(false);
+  const cancel = () => {
+    clearTimeout(timer.current);
+    setHolding(false);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <IconButton
+      label={label}
+      icon={Heart}
+      size={size}
+      className={`fav-btn ${cls}${holding ? ' is-holding' : ''}${salute ? ' sasageyo' : ''}`}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        held.current = false;
+        setHolding(true);
+        timer.current = setTimeout(() => {
+          held.current = true;
+          setHolding(false);
+          setSalute(true);
+          setTimeout(() => setSalute(false), 950);
+          if (!active) onToggle();
+          toastBus.push({ title: 'Shinzou wo sasageyo!', message: 'Heart dedicated.' });
+        }, 650);
+      }}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onClick={() => {
+        if (held.current) {
+          held.current = false;
+          return;
+        }
+        onToggle();
+      }}
+    />
+  );
 }
 
 /** Shimmering placeholders shaped like the content that is loading. */
@@ -231,6 +278,12 @@ export function SkeletonHero() {
 export function EmptyState({ icon: Icon = Disc3, title, message, children }) {
   return (
     <div className="empty-state">
+      {/* Ghibli: soot sprites keep empty pages company. */}
+      <span className="soot" aria-hidden>
+        <i />
+        <i />
+        <i />
+      </span>
       <div className="empty-state__icon">
         <Icon size={28} strokeWidth={1.5} aria-hidden />
       </div>

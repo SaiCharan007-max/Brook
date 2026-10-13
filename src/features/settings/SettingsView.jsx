@@ -179,7 +179,7 @@ export function SettingsView() {
         {scanning && (
           <div className="scan-progress" role="status" aria-live="polite">
             <div className="scan-progress__head">
-              <span>{scan.phase === 'enumerating' ? 'Finding audio files…' : `Indexing ${scan.processed.toLocaleString()} of ${scan.total.toLocaleString()}`}</span>
+              <span>{scan.phase === 'enumerating' ? 'Scouting beyond the walls…' : `Indexing ${scan.processed.toLocaleString()} of ${scan.total.toLocaleString()}`}</span>
               <button className="btn btn--ghost btn--sm" onClick={() => api.library.cancelScan()}>
                 Cancel
               </button>
@@ -417,7 +417,7 @@ export function SettingsView() {
           </ul>
         </div>
         <div className="button-row">
-          <button className="btn btn--ghost" onClick={() => api.app.quit()}>
+          <button className="btn btn--ghost" onClick={() => window.dispatchEvent(new Event('brook:farewell'))}>
             <Power size={16} /> Quit Brook
           </button>
         </div>
