@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Disc3 } from 'lucide-react';
 import { Artwork, IconButton, FavButton } from '../../components/primitives.jsx';
-import { TopHat, useTilt } from '../../components/Delights.jsx';
+import { Vinyl, useTilt } from '../../components/Delights.jsx';
 import { TransportControls, SeekBar, VolumeControl } from '../../components/PlayerControls.jsx';
 import { QueueList } from '../../components/QueueList.jsx';
 import { usePlayer, usePosition, player } from '../../hooks/usePlayer.js';
@@ -63,17 +63,21 @@ export function NowPlaying({ onClose, focus = false, soulKing = false }) {
         <div className="now-playing__empty">Quiet as a ghost ship. Choose a song from your library to begin.</div>
       ) : (
         <div className="now-playing__body">
-          <div className="now-playing__art tilt" ref={tiltRef} style={{ viewTransitionName: 'np-art' }}>
-            {soulKing && <TopHat />}
-            {/* In Bankai (focus) mode each new track arrives with a Getsuga Tenshō slash. */}
-            <div key={focus ? `slash-${current.id}` : 'art'} className={focus ? 'slash-in' : undefined}>
-              <Artwork key={current.artHash ?? current.id} hash={current.artHash} kind="full" rounded="md" icon={Disc3} className="np-art-swap" />
+          <div className={`now-playing__art${focus ? '' : ' tilt'}`} ref={focus ? undefined : tiltRef} style={{ viewTransitionName: 'np-art' }}>
+            {/* In Bankai (focus) mode each new track's artwork fades and settles in. */}
+            <div key={focus ? `swap-${current.id}` : 'art'} className={focus ? 'focus-swap' : undefined}>
+              {focus ? (
+                <Vinyl hash={current.artHash} playing={playing} />
+              ) : (
+                <Artwork key={current.artHash ?? current.id} hash={current.artHash} kind="full" rounded="md" icon={Disc3} className="np-art-swap" />
+              )}
             </div>
           </div>
           <section className="now-playing__column">
             <div className="meta-in" key={current.id}>
             <div className="mono-label">
               {focus && <span className="focus-badge">Bankai · </span>}
+              {soulKing && <span className="sk-live">Soul King live · </span>}
               Track {position + 1} of {total}
               {current.lossless ? ' · Lossless' : ''}
             </div>

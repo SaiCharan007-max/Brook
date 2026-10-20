@@ -29,7 +29,9 @@ await shot('d2-home-greeting');
 // Konami code → Soul King mode.
 await page.locator('.content').click({ position: { x: 5, y: 5 } });
 for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);
-await wait(600);
+await wait(250);
+await shot('d3a-soul-king-intro');
+await wait(1600);
 await shot('d3-soul-king');
 await page.getByRole('button', { name: 'Now Playing', exact: true }).click();
 await wait(900);

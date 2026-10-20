@@ -424,6 +424,20 @@ export class PlaybackController {
     this.#schedulePublish();
   }
 
+  /** Seeks relative to the current position (keyboard skip). Returns the new position. */
+  seekBy(delta) {
+    const now = this.audio.currentTime || this.position.position || 0;
+    this.seek(now + delta);
+    return this.position.position;
+  }
+
+  /** Seeks to a fraction (0..1) of the track (number keys 0–9). */
+  seekToFraction(fraction) {
+    const d = Number.isFinite(this.audio.duration) ? this.audio.duration : this.position.duration;
+    if (d) this.seek(Math.max(0, Math.min(1, fraction)) * d);
+    return this.position.position;
+  }
+
   next() {
     const q = this.state.queue;
     if (!q.items.length) return;

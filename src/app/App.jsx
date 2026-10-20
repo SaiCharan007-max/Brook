@@ -24,9 +24,11 @@ import { PageTitleProvider } from './PageTitleContext.jsx';
 import { withViewTransition } from './motion.js';
 import { CommandPalette } from '../components/CommandPalette.jsx';
 import { ShortcutSheet } from '../components/ShortcutSheet.jsx';
-import { Farewell, Petals, ToBeContinued, useKonami } from '../components/Delights.jsx';
+import { Farewell, Petals, SoulKingIntro, SoulKingNotes, ToBeContinued, useKonami } from '../components/Delights.jsx';
 import { toastBus } from './toastBus.js';
 import { prefersReducedMotion } from './motion.js';
+import { useKeyboardControls } from './useKeyboardControls.js';
+import { KeyFeedback } from '../components/KeyFeedback.jsx';
 
 export function App({ settings }) {
   return (
@@ -95,15 +97,22 @@ function Shell() {
     if (settings.soulKing) document.documentElement.dataset.soulKing = 'true';
     else delete document.documentElement.dataset.soulKing;
   }, [settings.soulKing]);
+  const [soulKingIntro, setSoulKingIntro] = useState(false);
   const toggleSoulKing = useCallback(() => {
     const on = !settings.soulKing;
     update('soulKing', on);
-    toastBus.push(
-      on
-        ? { title: 'Yohohoho! Soul King mode', message: 'The stage is set. (Type the code again to leave.)' }
-        : { title: 'Soul King mode off', message: 'Until the next encore.' },
-    );
-  }, [settings.soulKing, update]);
+    if (on) {
+      if (!settings.soulKingUnlocked) update('soulKingUnlocked', true);
+      setSoulKingIntro(true);
+    } else {
+      setSoulKingIntro(false);
+      toastBus.push({ title: 'Soul King mode off', message: 'Until the next encore.' });
+    }
+  }, [settings.soulKing, settings.soulKingUnlocked, update]);
+  const endSoulKingIntro = useCallback(() => {
+    setSoulKingIntro(false);
+    toastBus.push({ title: 'Soul King mode', message: 'Brook takes the stage. Turn it off in Settings or with the code again.' });
+  }, []);
   useKonami(toggleSoulKing);
 
   // One Piece (Laboon): a restored session is a promise kept.
@@ -130,7 +139,7 @@ function Shell() {
     };
   }, []);
 
-  // Cowboy Bebop: a short farewell before quitting (instant with reduced motion).
+  // A short "Mata ashita" farewell before quitting (instant with reduced motion).
   useEffect(() => {
     const onFarewell = () => {
       if (prefersReducedMotion()) return api.app.quit();
@@ -184,10 +193,11 @@ function Shell() {
   const enterFocus = useCallback(
     (announce = false) => {
       if (!player.getSnapshot().current) return;
-      if (!nowPlaying) withViewTransition(() => setNowPlaying(true), { direction: 'up' });
-      setFocus(true);
-      setPetalsKey((k) => k + 1);
+      // No page transition here: animating while the window resizes to fullscreen causes jank.
       api.windows.setFullScreen(true).catch(() => {});
+      setNowPlaying(true);
+      setFocus(true);
+      setTimeout(() => setPetalsKey((k) => k + 1), 380);
       if (announce) toastBus.push({ title: 'Bankai.', message: 'Focus mode — Esc to return.' });
     },
     [nowPlaying],
@@ -208,27 +218,17 @@ function Shell() {
     const onKey = (e) => {
       const el = e.target;
       const typing = el.closest?.('input, textarea, select, [contenteditable="true"]');
-      const interactive = typing || el.closest?.('button, [role="slider"], [role="menu"], [role="dialog"] form, [role="row"]');
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen((v) => !v);
       } else if (e.key === '?' && !typing) {
         e.preventDefault();
         setShortcutsOpen(true);
-      } else if (e.key === ' ' && !interactive) {
-        e.preventDefault();
-        player.toggle();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         if (nowPlaying) closeNowPlaying();
         searchRef.current?.focus();
         searchRef.current?.select();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowRight' && !typing) {
-        e.preventDefault();
-        player.next();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowLeft' && !typing) {
-        e.preventDefault();
-        player.previous();
       } else if (e.altKey && e.key === 'ArrowLeft' && !typing) {
         e.preventDefault();
         goBack();
@@ -251,6 +251,12 @@ function Shell() {
     return () => window.removeEventListener('keydown', onKey);
   }, [goBack, goForward, navigate, nowPlaying, closeNowPlaying, focus, enterFocus, exitFocus]);
 
+  // Media keys on the keyboard: Space/K, ←/→, J/L, ↑/↓, M, 0–9, S, R, H, Q, N (see useKeyboardControls).
+  useKeyboardControls({
+    toggleQueue: () => setQueueOpen((v) => !v),
+    toggleNowPlaying: () => (nowPlaying ? closeNowPlaying() : openNowPlaying()),
+  });
+
   // Mouse back/forward buttons.
   useEffect(() => {
     const onMouse = (e) => {
@@ -264,6 +270,7 @@ function Shell() {
   return (
     <div className={`app-shell${queueOpen ? ' has-queue' : ''}`} data-scrolled={scrolled || undefined}>
       <div className="ambient" aria-hidden />
+      {settings.soulKing && <SoulKingNotes />}
       <a href="#main" className="skip-link">
         Skip to content
       </a>
@@ -297,6 +304,8 @@ function Shell() {
       {nowPlaying && <NowPlaying onClose={focus ? exitFocus : closeNowPlaying} focus={focus} soulKing={!!settings.soulKing} />}
       {petalsKey > 0 && <Petals key={petalsKey} />}
       <ToBeContinued />
+      <KeyFeedback />
+      {soulKingIntro && <SoulKingIntro onDone={endSoulKingIntro} />}
       {leaving && <Farewell />}
       {paletteOpen && <CommandPalette
           onClose={() => setPaletteOpen(false)}

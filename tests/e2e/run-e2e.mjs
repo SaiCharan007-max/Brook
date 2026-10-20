@@ -297,6 +297,37 @@ try {
     await waitFor(async () => (await page.getByRole('heading', { name: 'Keyboard shortcuts' }).count()) === 0, { message: 'sheet closed' });
   });
 
+  await step('keyboard: Space (even on a focused button), arrows, 0-9, M, volume', async () => {
+    await nav(page, 'Songs');
+    await playTrackByTitle(page, 'First Light');
+    await expectPlaying(app, 'First Light', { minPosition: 0.3 });
+    const shuffleBtn = page.getByRole('button', { name: /Shuffle: (on|off)/ }).first();
+    const shuffleBefore = await shuffleBtn.getAttribute('aria-label');
+    await shuffleBtn.focus();
+    await page.keyboard.press(' ');
+    await waitFor(async () => !(await playerState(app)).playing, { message: 'paused by Space' });
+    assert.equal(await shuffleBtn.getAttribute('aria-label'), shuffleBefore, 'Space must not click the focused button');
+    await page.locator('.osd').waitFor();
+    await page.keyboard.press(' ');
+    await waitFor(async () => (await playerState(app)).playing, { message: 'resumed by Space' });
+
+    await page.locator('.content').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('5');
+    await waitFor(async () => Math.abs((await playerState(app)).position - 7) < 1.2, { message: '5 jumps to 50% (7s of 14s)' });
+    const before = (await playerState(app)).position;
+    await page.keyboard.press('ArrowLeft');
+    await waitFor(async () => (await playerState(app)).position < before - 3, { message: 'ArrowLeft seeks back 5s' });
+
+    const vol = (await playerState(app)).volume;
+    await page.keyboard.press('ArrowDown');
+    await waitFor(async () => (await playerState(app)).volume < vol - 0.04, { message: 'ArrowDown lowers volume' });
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('m');
+    await waitFor(async () => (await playerState(app)).muted, { message: 'M mutes' });
+    await page.keyboard.press('m');
+    await waitFor(async () => !(await playerState(app)).muted, { message: 'M unmutes' });
+  });
+
   await step('Konami code toggles Soul King mode', async () => {
     await page.locator('.content').click({ position: { x: 5, y: 5 } });
     for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);

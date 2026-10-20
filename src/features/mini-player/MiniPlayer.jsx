@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Heart, Maximize2, Pause, Pin, PinOff, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { Artwork, Slider } from '../../components/primitives.jsx';
 import { applyPalette, applyPreferences } from '../../services/themeService.js';
@@ -16,6 +16,8 @@ export function MiniPlayer() {
   const [settings, setSettings] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [preview, setPreview] = useState(null);
+  const stateRef = useRef(null);
+  stateRef.current = state;
 
   useEffect(() => {
     api.player.getState().then((s) => s && setState(s)).catch(() => {});
@@ -43,9 +45,20 @@ export function MiniPlayer() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === ' ' && !e.target.closest('button,[role="slider"]')) {
+      if (e.target.closest('[role="slider"]')) return;
+      const st = stateRef.current;
+      const live = st ? st.position + (st.playing ? Math.max(0, Date.now() - st.timestamp) / 1000 : 0) : 0;
+      if (e.key === ' ' || e.key.toLowerCase() === 'k') {
         e.preventDefault();
         send({ type: 'toggle' });
+      } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && st?.track) {
+        e.preventDefault();
+        if (e.shiftKey || e.ctrlKey) send({ type: e.key === 'ArrowRight' ? 'next' : 'previous' });
+        else send({ type: 'seek', position: Math.max(0, Math.min(st.duration || 0, live + (e.key === 'ArrowRight' ? 5 : -5))) });
+      } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && st) {
+        e.preventDefault();
+        const v = Math.max(0, Math.min(1, (st.muted ? 0 : st.volume) + (e.key === 'ArrowUp' ? 0.05 : -0.05)));
+        send({ type: 'setVolume', volume: v });
       }
     };
     window.addEventListener('keydown', onKey);

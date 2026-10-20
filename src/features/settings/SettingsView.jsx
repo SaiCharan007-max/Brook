@@ -271,6 +271,14 @@ export function SettingsView() {
           ]}
           onChange={(v) => update('ambientIntensity', v)}
         />
+        {settings.soulKingUnlocked && (
+          <Switch
+            label="Soul King mode"
+            description="Unlocked! Brook's concert: lavender stage lights and drifting notes. The Konami code toggles it too."
+            checked={settings.soulKing}
+            onChange={(v) => update('soulKing', v)}
+          />
+        )}
         <Switch label="Reduce transparency" description="Use solid surfaces instead of blurred glass. Can improve performance on older hardware." checked={settings.reduceTransparency} onChange={(v) => update('reduceTransparency', v)} />
         <Segmented
           label="Reduce motion"

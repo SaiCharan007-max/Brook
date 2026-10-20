@@ -114,6 +114,7 @@ export const SETTINGS_SCHEMA = {
   sidebarCollapsed: { default: false, validate: (v, k) => bool(v, k) },
   // Hidden theme, unlocked with the Konami code. Yohohoho.
   soulKing: { default: false, validate: (v, k) => bool(v, k) },
+  soulKingUnlocked: { default: false, validate: (v, k) => bool(v, k) },
   songsSort: {
     default: { sort: 'title', dir: 'asc' },
     validate: (v) => {

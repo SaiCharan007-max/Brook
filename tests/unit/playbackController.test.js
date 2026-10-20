@@ -211,6 +211,17 @@ describe('PlaybackController', () => {
     expect(audio.playCalls.length).toBe(playCalls);
   });
 
+  it('seeks relatively and by fraction, clamped to the track', async () => {
+    pc.playTracks([track(1)], 0);
+    await flush();
+    audio.duration = 100;
+    audio.currentTime = 10;
+    expect(pc.seekBy(5)).toBe(15);
+    expect(pc.seekBy(-60)).toBe(0);
+    expect(pc.seekToFraction(0.5)).toBe(50);
+    expect(pc.seekBy(1000)).toBeCloseTo(99.95);
+  });
+
   it('handles remote commands from the mini-player', async () => {
     pc.playTracks([track(1), track(2)], 0);
     await flush();

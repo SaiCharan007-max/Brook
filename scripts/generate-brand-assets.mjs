@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(root, 'build', 'brand', 'logo-source.webp');
 
 // Crop rectangles in source pixels (source is 1254x1254).
-const MARK = { x: 272, y: 148, size: 740 }; // hat + clef "B" + skull, without the wordmark
+const MARK = { x: 47, y: 25, size: 1160 }; // the full glass sound-wave, centred with breathing room
 const FULL = { x: 0, y: 0, size: 1254 };
 
 // Runs inside the page. Returns PNG data URLs.

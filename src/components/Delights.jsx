@@ -1,9 +1,11 @@
 // Small moments of delight. Most are quiet nods to anime the Brook crew loves:
-// One Piece, Bleach, Attack on Titan, JoJo, Cowboy Bebop, Ghibli, Dragon Ball.
+// One Piece, Bleach, Attack on Titan, JoJo, Ghibli, Dragon Ball, Spy × Family.
 // Every animation here respects reduced motion (see motion.css / delight.css).
 import { useEffect, useRef, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer.js';
 import { prefersReducedMotion } from '../app/motion.js';
+import logoUrl from '../assets/brook-logo.png';
+import { Artwork } from './primitives.jsx';
 
 /** JoJo: when the queue runs out, a "To Be Continued" arrow slides in for a moment. */
 export function ToBeContinued() {
@@ -57,18 +59,6 @@ export function Petals({ count = 26 }) {
         />
       ))}
     </div>
-  );
-}
-
-/** One Piece: Brook's top hat, perched on the artwork in Soul King mode. */
-export function TopHat({ className = '' }) {
-  return (
-    <svg className={`tophat ${className}`} viewBox="0 0 64 48" aria-hidden>
-      <ellipse cx="32" cy="41" rx="30" ry="6" fill="#16131f" />
-      <path d="M14 40 L17 8 Q32 2 47 8 L50 40 Z" fill="#1c1828" />
-      <path d="M15.8 30 Q32 35 48.2 30 L48.9 36 Q32 41 15.1 36 Z" fill="#b9a6ff" opacity="0.85" />
-      <path d="M17 8 Q32 2 47 8 Q32 12 17 8 Z" fill="#2a2440" />
-    </svg>
   );
 }
 
@@ -138,11 +128,13 @@ export function useTilt(maxDeg = 6) {
   return ref;
 }
 
-/** Cowboy Bebop: a farewell card shown for a beat before Brook quits. */
+/** A farewell card shown for a beat before Brook quits: "Mata ashita" (see you later). */
 export function Farewell() {
   return (
     <div className="farewell" role="status">
-      <span>See you, space cowboy…</span>
+      <span className="farewell__jp" lang="ja">また明日</span>
+      <span className="farewell__main">Mata ashita.</span>
+      <span className="farewell__sub">See you later</span>
     </div>
   );
 }
@@ -170,4 +162,96 @@ export function useKonami(onUnlock) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+}
+
+/**
+ * One Piece: the Soul King takes the stage. A short title card when the mode is switched on
+ * (click or wait to dismiss).
+ */
+export function SoulKingIntro({ onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, prefersReducedMotion() ? 1200 : 2800);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div className="sk-intro" role="status" onClick={onDone}>
+      <div className="sk-intro__notes" aria-hidden>
+        {['♪', '♫', '♬', '♪', '♩', '♫', '♬', '♪'].map((n, i) => (
+          <i key={i} style={{ '--i': i }}>
+            {n}
+          </i>
+        ))}
+      </div>
+      <img className="sk-intro__logo" src={logoUrl} alt="" draggable={false} />
+      <div className="sk-intro__label">Soul King mode</div>
+      <div className="sk-intro__laugh">Yohohoho!</div>
+    </div>
+  );
+}
+
+const NOTE_GLYPHS = ['♪', '♫', '♬', '♩'];
+
+/** Soul King mode: music notes drifting slowly up behind the content, like a concert hall. */
+export function SoulKingNotes({ count = 16 }) {
+  const [notes] = useState(() =>
+    Array.from({ length: count }, (_, i) => ({
+      id: i,
+      glyph: NOTE_GLYPHS[i % NOTE_GLYPHS.length],
+      left: 4 + Math.random() * 92,
+      size: 14 + Math.random() * 22,
+      duration: 14 + Math.random() * 14,
+      delay: -Math.random() * 28,
+      sway: (Math.random() - 0.5) * 60,
+    })),
+  );
+  return (
+    <div className="sk-notes" aria-hidden>
+      {notes.map((n) => (
+        <i
+          key={n.id}
+          style={{
+            left: `${n.left}%`,
+            fontSize: n.size,
+            animationDuration: `${n.duration}s`,
+            animationDelay: `${n.delay}s`,
+            '--sway': `${n.sway}px`,
+          }}
+        >
+          {n.glyph}
+        </i>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Focus (Bankai) mode: the song's artwork becomes the label of a vinyl record on a turntable.
+ * The record spins at 33⅓ RPM while playing and stops when paused; the tonearm swings onto the
+ * record when playback starts and lifts away on pause. The light reflection stays still while the
+ * record turns underneath it, like real light on vinyl.
+ */
+export function Vinyl({ hash, playing }) {
+  return (
+    <div className={`vinyl${playing ? ' is-playing' : ''}`}>
+      <div className="vinyl__record">
+        <div className="vinyl__grooves" aria-hidden />
+        <div className="vinyl__label">
+          <Artwork hash={hash} kind="full" rounded="full" />
+        </div>
+        <div className="vinyl__spindle" aria-hidden />
+      </div>
+      <div className="vinyl__sheen" aria-hidden />
+      <svg className="vinyl__arm" viewBox="0 0 80 420" aria-hidden>
+        {/* pivot base */}
+        <circle cx="40" cy="40" r="30" fill="#1c1c1c" stroke="#3a3a3a" strokeWidth="2" />
+        <circle cx="40" cy="40" r="14" fill="#9a9a9a" />
+        <circle cx="40" cy="40" r="5" fill="#d8d8d8" />
+        {/* tube */}
+        <path d="M40 40 L40 300 L28 345" fill="none" stroke="#d6d6d6" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        {/* headshell + stylus */}
+        <rect x="10" y="338" width="30" height="44" rx="4" transform="rotate(14 25 360)" fill="#262626" stroke="#4a4a4a" strokeWidth="1.5" />
+        <rect x="18" y="376" width="12" height="10" rx="2" transform="rotate(14 25 360)" fill="#e0893a" />
+      </svg>
+    </div>
+  );
 }

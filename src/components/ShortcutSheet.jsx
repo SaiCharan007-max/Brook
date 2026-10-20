@@ -5,11 +5,24 @@ const GROUPS = [
   [
     'Playback',
     [
-      ['Space', 'Play / pause'],
-      ['Ctrl →', 'Next track'],
-      ['Ctrl ←', 'Previous track (restarts after 3 s)'],
-      ['↑ ↓ on a slider', 'Fine-tune seek / volume'],
-      ['Mouse wheel on volume', 'Change volume'],
+      ['Space  /  K', 'Play / pause'],
+      ['←  /  →', 'Back / forward 5 seconds'],
+      ['J  /  L', 'Back / forward 10 seconds'],
+      ['Shift ←  /  Shift →', 'Previous / next track (or Ctrl)'],
+      ['0 – 9', 'Jump to 0% – 90% of the track'],
+      ['Home', 'Restart the track'],
+      ['↑  /  ↓', 'Volume up / down'],
+      ['M', 'Mute / unmute'],
+      ['S  /  R', 'Shuffle / repeat'],
+      ['H', 'Heart the current song'],
+    ],
+  ],
+  [
+    'Views',
+    [
+      ['N', 'Now Playing'],
+      ['Q', 'Queue'],
+      ['F', 'Focus mode (Bankai)'],
     ],
   ],
   [
