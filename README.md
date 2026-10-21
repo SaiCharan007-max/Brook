@@ -81,3 +81,11 @@ Corrupt files are indexed with a clear "unsupported" state; if one is reached du
 E2E runs set `VELA_QUIET=1`: windows stay hidden, audio is muted and media-key integration is disabled.
 
 **Not yet verified by automation:** hardware media keys and the Windows media overlay (SMTC) with real keys, tray menu clicks, the NSIS installer UI, and behaviour on very large libraries (10k+ tracks).
+
+## License
+
+Copyright (C) 2026 Chenna Sai Charan.
+
+Brook is free software, released under the [GNU General Public License v3.0 or later](LICENSE). You may use, study, share and modify it; if you distribute it or a modified version, you must do so under the same license and make the source available.
+
+Brook bundles [FFmpeg](https://ffmpeg.org) (via `ffmpeg-static`) to play ALAC files; FFmpeg is licensed separately under the GPL.
