@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Brook — Your music lives on. An offline-first desktop music player.",
   "author": "Chenna Sai Charan",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "main": "electron/main.js",
