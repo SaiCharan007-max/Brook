@@ -86,4 +86,4 @@ E2E runs set `VELA_QUIET=1`: windows stay hidden, audio is muted and media-key i
 
 Copyright (c) 2026 Chenna Sai Charan. Released under the [MIT License](LICENSE): you may use, copy, modify and distribute Brook freely, as long as the copyright notice is kept.
 
-Brook bundles [FFmpeg](https://ffmpeg.org) (via ) to play ALAC files. FFmpeg is not covered by the MIT License; it is licensed separately under the GPL.
+Brook bundles [FFmpeg](https://ffmpeg.org) (via `ffmpeg-static`) to play ALAC files. FFmpeg is not covered by the MIT License; it is licensed separately under the GPL.
